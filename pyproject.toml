@@ -1,0 +1,41 @@
+[tool.poetry]
+name = "thread-agent"
+version = "0.1.0"
+description = "Thread Agent is a Multi-modal Fusion Agents Framework to simplify agent development."
+authors = ["dreamhead <dreamhead.cn@gmail.com>"]
+readme = "README.md"
+packages = [{ include = "threadagent", from = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.12"
+langchain = "^0.0.326"
+click = "^8.1.7"
+tomli-w = "^1.0.0"
+openai = "^0.28.1"
+tiktoken = "^0.5.1"
+qdrant-client = "^1.6.3"
+langchainhub = "^0.1.13"
+langchain-experimental = "^0.0.32"
+
+
+[tool.poetry.scripts]
+ta = 'threadagent.app:app'
+
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.1.3"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+select = [
+  "E",  # pycodestyle
+  "F",  # pyflakes
+  "UP", # pyupgrade,
+  "I",  # isort
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
