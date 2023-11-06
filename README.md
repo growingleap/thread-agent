@@ -78,3 +78,17 @@ Thread Agent use `ruff` as a linter. You can run the following command to check 
 ```shell
 poetry run ruff check .
 ```
+
+### Run Tests
+
+Thread Agent use `pytest` as a test framework. Before you run tests, run the following command to create a local configuration which is required by integration tests:
+```shell
+cp env.examle.toml env.toml
+```
+
+And then, write your own configuration in `env.toml`. 
+
+After your editing, you can run the following command to run all tests:
+```shell
+poetry run pytest
+```

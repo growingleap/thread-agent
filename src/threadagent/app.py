@@ -3,6 +3,8 @@ import sys
 
 import click
 
+from threadagent.project_loader import ProjectLoader
+
 current_path = os.path.abspath(os.path.dirname(__file__))
 root_path = os.path.split(current_path)[0]
 sys.path.append(root_path)
@@ -49,14 +51,16 @@ def new_project_command(project_name):
 @click.option("-m", "--message", "message")
 def run_project_command(name, message):
     """run the project with single message."""
-    ProjectRunner(name).run(message)
+    project = ProjectLoader(name).load_project()
+    ProjectRunner(project).run(message)
 
 
 @click.command("shell")
 @click.argument("name", nargs=1)
 def shell_project_command(name):
     """run the project in a shell."""
-    ProjectRunner(name).shell()
+    project = ProjectLoader(name).load_project()
+    ProjectRunner(project).shell()
 
 
 add_command.add_command(add_agent_command)

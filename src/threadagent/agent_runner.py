@@ -26,14 +26,14 @@ class AgentRunner:
         self.project = project
 
     def run(self, name, message):
-        chain = AgentFactory(self.project).create(name)
-        chain.invoke({"input": message})
+        agent = AgentFactory(self.project).create(name)
+        return agent.run(message)
 
     def shell(self, name):
-        chain = AgentFactory(self.project).create(name)
+        agent = AgentFactory(self.project).create(name)
         while True:
             text = click.prompt("", prompt_suffix=">")
             if text.casefold() == "exit".casefold():
                 break
 
-            chain.invoke({"input": text})
+            agent.run(text)

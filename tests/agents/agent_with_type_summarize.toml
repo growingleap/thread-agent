@@ -1,0 +1,14 @@
+[project]
+name = "agent_with_type_summarize"
+default-model = "llm.openai"
+entry = "agent.foo"
+
+[llm.openai]
+api_key = "<YOUR_API_KEY>"
+api_base = "<YOUR_API_BASE>"
+
+[agent.foo]
+model = "llm.openai"
+type = "summarize"
+
+
