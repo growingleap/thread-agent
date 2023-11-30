@@ -1,0 +1,24 @@
+[project]
+name = "script_writer"
+default-model = "llm.openai"
+entry = "workflow.starter"
+
+[llm.openai]
+api_key = "<YOUR_API_KEY>"
+api_base = "<YOUR_API_BASE>"
+
+[agent.script_writer]
+model = "llm.openai"
+prompt_template = """You are a script writer of picture book. You can create a 10-page story based on a provided synopsis.
+You should return a valid JSON array including a JSON for each page with the following format:
+{{"page_story": "the story of the page in its original language", "page_image": "the image content in its original language", "image_prompt": "the prompts required to generate the page image in English. Don't use pronouns in the prompt."}}
+The synopsis is as following:
+```
+{synopsis}
+```"""
+input_key = "synopsis"
+
+[workflow.starter]
+type="sequence"
+agents=["agent.script_writer"]
+

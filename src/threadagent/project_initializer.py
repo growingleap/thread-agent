@@ -3,12 +3,12 @@ import os
 import click
 import tomli_w
 
-from threadagent.project_loader import ProjectLoader
+from threadagent.project_loader import load_project_config
 
 
-class ProjectInitializer(ProjectLoader):
+class ProjectInitializer:
     def __init__(self, name):
-        super().__init__(name)
+        self.name = name
 
     def initialize(self):
         project = self._new_project()
@@ -40,7 +40,7 @@ class ProjectInitializer(ProjectLoader):
             tomli_w.dump(project, f)
 
     def _new_project(self) -> dict | None:
-        config_file = f"{self.name}.toml"
+        config_file = self.filename()
         if os.path.exists(config_file):
             click.echo(f"Project [{self.name}] already exists!")
             return None
@@ -87,12 +87,13 @@ class ProjectInitializer(ProjectLoader):
                 break
             tools.append(tool)
         return (name, {
+            "type": "react",
             "tools": tools,
             "model": "llm.openai"
         })
 
     def add_agent(self):
-        project = self.load_project()
+        project = load_project_config(self.filename())
         if project is None:
             return
 
@@ -104,7 +105,7 @@ class ProjectInitializer(ProjectLoader):
         self._save_project(project)
 
     def add_workflow(self):
-        project = self.load_project()
+        project = load_project_config(self.filename())
         if project is None:
             return
 
@@ -128,3 +129,6 @@ class ProjectInitializer(ProjectLoader):
         return (name, {
             "initial_agent": f"agent.{initial_agent}"
         })
+
+    def filename(self):
+        return f"{self.name}.toml"

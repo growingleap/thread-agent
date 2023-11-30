@@ -25,9 +25,9 @@ from qdrant_client import QdrantClient
 from qdrant_client.conversions.common_types import VectorParams
 from qdrant_client.http.models import models
 
-from threadagent.agent import Agent, FilteredAgent
 from threadagent.agent_template import ANSWER_PROMPT, CONDENSE_QUESTION_PROMPT, REACT_TEMPLATE
 from threadagent.memory_runnable import MemoryRunnable
+from threadagent.project import Agent, FilteredAgent
 from threadagent.streaming_callback import StreamingClickCallbackHandler
 
 
@@ -58,18 +58,18 @@ class AgentFactory:
         set_llm_cache(InMemoryCache())
 
         if "type" in agent:
-            return self._create_typed_agent(agent, model)
+            return self._create_typed_agent(name, agent, model)
 
-        return self._create_bot(agent, model)
+        return self._create_bot(name, agent, model)
 
     def _create_model(self, agent) -> BaseLanguageModel:
         llm = self._get_agent_model(agent)
         (_, name) = llm.split(".")
-        return self._create_model_by_name(name, agent)
+        return self._create_model_by_name(name)
 
-    def _create_model_by_name(self, name, agent) -> BaseLanguageModel:
+    def _create_model_by_name(self, name) -> BaseLanguageModel:
         if "openai".casefold() == name.casefold():
-            model_name = self._get_model_name(agent)
+            model_name = self._get_model_name()
 
             return ChatOpenAI(
                 model_name=model_name,
@@ -83,11 +83,8 @@ class AgentFactory:
         raise ValueError(f"LLM [{name}] not supported!")
 
     @staticmethod
-    def _get_model_name(agent) -> str:
-        if "type" in agent and agent["type"] == "summarize":
-            return "gpt-3.5-turbo-16k"
-
-        return "gpt-3.5-turbo"
+    def _get_model_name() -> str:
+        return "gpt-3.5-turbo-1106"
 
     def _get_agent_model(self, agent: dict) -> str:
         if "model" in agent:
@@ -96,7 +93,7 @@ class AgentFactory:
         return self.project["project"]["default-model"]
 
     @staticmethod
-    def _create_react_agent(agent, model: BaseLanguageModel) -> Agent:
+    def _create_react_agent(name, agent, model: BaseLanguageModel) -> Agent:
         llm_with_stop = model.bind(stop=["\nObservation"])
         tools = create_tools(agent["tools"])
         prompt = PromptTemplate.from_template(REACT_TEMPLATE, partial_variables={
@@ -110,17 +107,13 @@ class AgentFactory:
                 } | prompt | llm_with_stop | ReActSingleInputOutputParser()
         memory = ConversationBufferWindowMemory(memory_key="chat_history")
         agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, memory=memory)
-        return Agent(agent_executor)
+        return Agent(name, agent_executor)
 
-    def _create_bot(self, agent, model: BaseLanguageModel) -> Agent:
+    def _create_bot(self, name: str, agent, model: BaseLanguageModel) -> Agent:
         if "documents" in agent:
-            return self._create_qa_bot(agent, model)
+            return self._create_qa_bot(name, agent, model)
 
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are a helpful chatbot"),
-            MessagesPlaceholder(variable_name="history"),
-            ("human", "{input}")
-        ])
+        prompt = self.create_prompt(agent)
 
         memory = ConversationBufferWindowMemory(return_messages=True)
         memory.load_memory_variables({})
@@ -128,9 +121,24 @@ class AgentFactory:
             history=RunnableLambda(memory.load_memory_variables) | itemgetter("history"))
                  | prompt
                  | model)
-        return Agent(MemoryRunnable(memory, chain))
+        user_input_key = "input"
+        if 'input_key' in agent:
+            user_input_key = agent['input_key']
+        return Agent(name, MemoryRunnable(memory, chain), input_key=user_input_key)
 
-    def _create_qa_bot(self, agent, model: BaseLanguageModel) -> Agent:
+    def create_prompt(self, agent):
+        prompt = "{input}"
+        if "prompt_template" in agent:
+            prompt = agent["prompt_template"]
+            return PromptTemplate.from_template(prompt)
+
+        return ChatPromptTemplate.from_messages([
+            ("system", "You are a helpful chatbot"),
+            MessagesPlaceholder(variable_name="history"),
+            ("human", prompt)
+        ])
+
+    def _create_qa_bot(self, name: str, agent, model: BaseLanguageModel) -> Agent:
         qa_prompt = ChatPromptTemplate.from_template(ANSWER_PROMPT)
         prompt = ChatPromptTemplate.from_template(CONDENSE_QUESTION_PROMPT)
 
@@ -173,7 +181,7 @@ class AgentFactory:
                                    | {"input": RunnablePassthrough()}
                                    )
 
-        return Agent(condense_question_chain | MemoryRunnable(memory, qa_chain))
+        return Agent(name, condense_question_chain | MemoryRunnable(memory, qa_chain))
 
     def _create_embedding_by_name(self, name) -> Embeddings:
         if "openai".casefold() == name.casefold():
@@ -190,17 +198,17 @@ class AgentFactory:
         return self._create_embedding_by_name(name)
         pass
 
-    def _create_typed_agent(self, agent, model: BaseLanguageModel) -> Agent:
+    def _create_typed_agent(self, name, agent, model: BaseLanguageModel) -> Agent:
         if agent["type"] == "summarize":
-            return self._create_summarize_agent(agent, model)
+            return self._create_summarize_agent(name, agent, model)
 
         if agent["type"] == "react":
-            return self._create_react_agent(agent, model)
+            return self._create_react_agent(name, agent, model)
 
         raise ValueError(f"Agent type [{agent['type']}] not supported!")
 
     @staticmethod
-    def _create_summarize_agent(agent, model: BaseLanguageModel) -> Agent:
+    def _create_summarize_agent(name, agent, model: BaseLanguageModel) -> Agent:
         prompt = PromptTemplate.from_template(
             """Write a concise summary in its original language of the following:
             "{text}"
@@ -214,4 +222,4 @@ class AgentFactory:
                                    bs_get_text_kwargs={"strip": True})
             return loader.load()
 
-        return FilteredAgent(chain, _run)
+        return FilteredAgent(name, chain, _run)

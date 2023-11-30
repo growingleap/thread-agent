@@ -8,14 +8,14 @@ packages = [{ include = "threadagent", from = "src" }]
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"
-langchain = "^0.0.330"
+langchain = "^0.0.343"
 click = "^8.1.7"
 tomli-w = "^1.0.0"
-openai = "^0.28.1"
+openai = "^1.3.6"
 tiktoken = "^0.5.1"
-qdrant-client = "^1.6.3"
-langchainhub = "^0.1.13"
-langchain-experimental = "^0.0.37"
+qdrant-client = "^1.6.9"
+langchainhub = "^0.1.14"
+langchain-experimental = "^0.0.43"
 
 
 [tool.poetry.scripts]
@@ -23,7 +23,7 @@ ta = 'threadagent.app:app'
 
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.1.3"
+ruff = "^0.1.6"
 
 
 [tool.poetry.group.test.dependencies]
